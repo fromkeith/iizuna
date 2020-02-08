@@ -25,7 +25,7 @@ export abstract class ComponentFactory {
 		// register the classes so we can dynamically create new instances as needed
 		for (const c of components) {
 			const componentClass = this.createComponentClass(c);
-			ComponentRegistry.componentDefinitions.set(componentClass.selector, c);
+			ComponentRegistry.componentDefinitions.set(componentClass.__options.selector, c);
 		}
 		DomReady.ready(() => {
 			for (let i = 0, l = components.length; i < l; i++) {
@@ -56,7 +56,7 @@ export abstract class ComponentFactory {
 		// register the classes so we can dynamically create new instances as needed
 		for (const c of components) {
 			const componentClass = this.createComponentClass(c);
-			ComponentRegistry.componentDefinitions.set(componentClass.selector, c);
+			ComponentRegistry.componentDefinitions.set(componentClass.__options.selector, c);
 		}
 		DomReady.ready(() => {
 			for (let i = 0, l = components.length; i < l; i++) {
@@ -138,10 +138,11 @@ export abstract class ComponentFactory {
 	private static initializeComponentStepA(individualComponent: AbstractComponent, element: Element): AbstractComponent {
 
 		// dont re-create or re-register something that exists already
+		// TODO: broken. identifier propbably doesn't exist on individualcomponent yet
 		const previous = ComponentRegistry.getComponentForElement(element);
 		if (previous.length > 0) {
 			for (const c of previous) {
-				if (c.selector === individualComponent.selector && c.identifier === individualComponent.identifier) {
+				if (c.selector === individualComponent.__options.selector && c.identifier === individualComponent.identifier) {
 					return c;
 				}
 			}
@@ -197,10 +198,26 @@ export abstract class ComponentFactory {
 		});
 	}
 
+	private static getOrMakeTemplate(selector: string, html: string): HTMLTemplateElement {
+		const asId = `template-${selector}`;
+		let templateElement = document.getElementById(html) as HTMLTemplateElement;
+		if (!templateElement) {
+			templateElement = document.createElement('template');
+			templateElement.setAttribute('id', asId);
+			templateElement.innerHTML = html;
+			document.body.append(templateElement);
+		}
+		return templateElement;
+	}
+
 	private static initializeComponentStepB(individualComponent: AbstractComponent) {
 		let templateElement;
 		if (typeof individualComponent.__options.template === 'string') {
 			templateElement = document.getElementById(individualComponent.__options.template) as HTMLTemplateElement;
+			// it could be HTML. if so, append it to the doc
+			if (!templateElement) {
+				templateElement = this.getOrMakeTemplate(individualComponent.selector, individualComponent.__options.template);
+			}
 		} else if (!individualComponent.__options.templateUrl) {
 			templateElement = individualComponent.element.getElementsByTagName('template')[0] as HTMLTemplateElement;
 		}
@@ -258,7 +275,7 @@ export abstract class ComponentFactory {
 		for (let j = 0; j < options.childrenSelectors.length; j++) {
 			let selector = options.childrenSelectors[j];
 			let identifier: string = null;
-			if (selector.indexOf('=')) {
+			if (selector.indexOf('=') > -1) {
 				[selector, identifier] = selector.split('=');
 			}
 			const childrenElements = HtmlElementUtility.querySelectAllByAttribute(selector, individualComponent.element, identifier);
@@ -288,7 +305,7 @@ export abstract class ComponentFactory {
 					// if we couldn't find an instance of for this element and component
 					// then lets init it!
 					if (!foundChild) {
-						foundChild = this.createComponentWithElement(c as HTMLElement, this.createComponentClass(childCompentDef));
+						foundChild = this.createComponentWithElement(c as HTMLElement, childCompentDef);
 					}
 					foundChildren.push(foundChild);
 					childrenComponents.push(foundChild);
