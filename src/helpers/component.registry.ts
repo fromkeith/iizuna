@@ -28,6 +28,7 @@ export const ComponentRegistry = new class {
 	 */
 	public componentDefinitions: Map<string, any> = new Map();
 
+	public services: Map<string, unknown> = new Map();
 
 	/**
 	 * @description

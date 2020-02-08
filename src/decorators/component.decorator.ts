@@ -13,6 +13,7 @@ export function Component(options: {
 	templateUrl?: string,
 	templateCachingEnabled?: boolean,
 	restrict?: string
+	inject?: string[],
 }) {
 	return function <T extends { new(...args: any[]): {} }>(target: T) {
 		return class extends target {

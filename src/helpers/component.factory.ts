@@ -6,6 +6,7 @@ import {DomReady} from "./dom-ready";
 import {AbstractComponent} from "../classes/abstract.component";
 import {Promise} from "es6-promise";
 import {OnResize} from "../interfaces/on-resize.interface";
+import {OnInject} from "../interfaces/on-inject.interface";
 import {TemplateCache} from "./template.cache";
 
 /**
@@ -28,6 +29,12 @@ export abstract class ComponentFactory {
 			childList: true,
 			subtree: true,
 		});
+	}
+
+	public static registerServices(services: [string, unknown][]) {
+		for (const [a, b] of services) {
+			ComponentRegistry.services.set(a, b);
+		}
 	}
 
 	/**
@@ -245,6 +252,7 @@ export abstract class ComponentFactory {
 			children = this.initializeChildrenElements(individualComponent, individualComponent.__options);
 		}
 		this.callComponentClassInitialized(individualComponent);
+		this.callComponentInject(individualComponent);
 		this.callReadyListener(individualComponent);
 		this.attachResizeListeners(individualComponent);
 		if (individualComponent.__options.selector) {
@@ -332,6 +340,18 @@ export abstract class ComponentFactory {
 			individualComponent.childrenComponents[options.childrenSelectors[j]] = childrenComponents;
 		}
 		return foundChildren;
+	}
+
+
+	private static callComponentInject(individualComponent: AbstractComponent): void {
+		let onReadyCasted = individualComponent as {} as OnInject;
+		if ('onInject' in individualComponent && typeof onReadyCasted.onInject === 'function') {
+			const args = [];
+			for (const i of individualComponent.__options.inject) {
+				args.push(ComponentRegistry.services.get(i));
+			}
+			onReadyCasted.onInject(...args);
+		}
 	}
 
 	/**
