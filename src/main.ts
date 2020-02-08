@@ -19,6 +19,7 @@ export {AbstractComponent} from "./classes/abstract.component";
 export {Component} from "./decorators/component.decorator";
 export {ComponentFactory} from "./helpers/component.factory";
 export {ComponentRegistry} from "./helpers/component.registry";
+export {OnDestroy} from "./interfaces/on-destroy.interface";
 export {OnReady} from "./interfaces/on-ready.interface";
 export {ConfigRegistry} from "./helpers/config.registry";
 export {Template} from "./classes/template";

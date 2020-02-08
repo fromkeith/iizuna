@@ -4,7 +4,7 @@ import {AbstractComponent} from "../classes/abstract.component";
 /**
  * @description
  * Any Component that is being created should normaly register itself automatically in this registry.
- * The component can then be retrieved on runtime via selector and identifier.
+ * The component can then be retrieved on runtime.
  */
 export const ComponentRegistry = new class {
 	/**
@@ -27,6 +27,18 @@ export const ComponentRegistry = new class {
 	 * new components when we find them
 	 */
 	public componentDefinitions: Map<string, any> = new Map();
+
+	public lifeListener: MutationObserver;
+
+	constructor() {
+		this.lifeListener = new MutationObserver((mutations, observer) => {
+			this.lifeRemoveEvent(mutations);
+		});
+		this.lifeListener.observe(document.body, {
+			childList: true,
+			subtree: true,
+		});
+	}
 
 	/**
 	 * @description
@@ -89,6 +101,42 @@ export const ComponentRegistry = new class {
 			this.elementToComponentRegister.get(element).push(component);
 			return;
 		}
+		element.setAttribute('iizuna-linked', '');
 		this.elementToComponentRegister.set(element, [component]);
+	}
+
+
+	public destroyElement(ele: Element) {
+		const components = this.elementToComponentRegister.get(ele);
+		if (!components) {
+			return;
+		}
+		// destroy, and garbage collect!
+		for (const c of components) {
+			if (c.onDestroy) {
+				c.onDestroy();
+			}
+			c.children = null;
+			c.childrenComponents = null;
+			c.element = null;
+			c.template = null;
+		}
+	}
+
+	public lifeRemoveEvent(mutations: MutationRecord[]) {
+		for (const m of mutations) {
+			const removed: Element[] = Array.from(m.removedNodes) as Element[];
+			for (const ele of removed) {
+				if (!ele.querySelectorAll) {
+					continue;
+				}
+				this.destroyElement(ele);
+
+				const linkedElements = Array.from(ele.querySelectorAll('[iizuna-linked]')) as Element[];
+				for (const sub of linkedElements) {
+					this.destroyElement(sub);
+				}
+			}
+		}
 	}
 };
