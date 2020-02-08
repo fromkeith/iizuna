@@ -16,7 +16,7 @@ export function EventListener(type: string = null, childSelector: string = null)
 			if (childSelector && object.children[childSelector]) {
 				let listenerTargetElement = object.children[childSelector];
 				for (let i = 0; i < listenerTargetElement.length; i++) {
-					applyForAllEventTypes(listenerTargetElement[i]);
+					applyForAllEventTypes(listenerTargetElement[i] as Element);
 				}
 			} else {
 				applyForAllEventTypes(object.element);
