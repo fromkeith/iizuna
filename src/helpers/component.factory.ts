@@ -229,7 +229,8 @@ export abstract class ComponentFactory {
 		if (templateElement && typeof templateElement.innerHTML !== 'undefined') {//we no longer check the instance of, because of some polyfills that cant inherit from the HTMLTemplateElement
 			individualComponent.template = new Template(templateElement.innerHTML);
 			// TODO: huge breaking change.
-			individualComponent.element.append(individualComponent.template.render({}));
+			const html = individualComponent.template.render({});
+			individualComponent.element.innerHTML = html;
 		}
 	}
 
