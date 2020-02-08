@@ -15,6 +15,21 @@ import {TemplateCache} from "./template.cache";
  */
 export abstract class ComponentFactory {
 
+	private static lifeListener: MutationObserver;
+
+	private static init() {
+		if (this.lifeListener) {
+			return;
+		}
+		this.lifeListener = new MutationObserver((mutations, observer) => {
+			this.lifeEvent(mutations);
+		});
+		this.lifeListener.observe(document.body, {
+			childList: true,
+			subtree: true,
+		});
+	}
+
 	/**
 	 * @description
 	 * Registers all Components passed as array for the optioanlly passed element. If a component was already registered for the element, skip it. The Class should be passed, not the object!
@@ -22,6 +37,7 @@ export abstract class ComponentFactory {
 	 * @param element
 	 */
 	public static registerComponentsOnce(components: any[], element: any = document): void {
+		this.init();
 		// register the classes so we can dynamically create new instances as needed
 		for (const c of components) {
 			const componentClass = this.createComponentClass(c);
@@ -53,6 +69,7 @@ export abstract class ComponentFactory {
 	 * @param element
 	 */
 	public static registerComponents(components: any[], element: any = document): void {
+		this.init();
 		// register the classes so we can dynamically create new instances as needed
 		for (const c of components) {
 			const componentClass = this.createComponentClass(c);
@@ -340,6 +357,63 @@ export abstract class ComponentFactory {
 			window.addEventListener('resize', () => {
 				onResizeCasted.onResize();
 			});
+		}
+	}
+
+	private static destroyElement(ele: Element) {
+		const components = ComponentRegistry.elementToComponentRegister.get(ele);
+		if (!components) {
+			return;
+		}
+		// destroy, and garbage collect!
+		for (const c of components) {
+			if (c.onDestroy) {
+				c.onDestroy();
+			}
+			c.children = null;
+			c.childrenComponents = null;
+			c.element = null;
+			c.template = null;
+		}
+	}
+
+	private static lifeEvent(mutations: MutationRecord[]) {
+		for (const m of mutations) {
+			// bind any new iizuna selectors
+			const added: Element[] = Array.from(m.addedNodes) as Element[];
+			for (const ele of added) {
+				if (!ele.querySelectorAll) {
+					continue;
+				}
+				if (ele.hasAttribute('iizuna-linked')) {
+					continue;
+				}
+				const selectors = Array.from(ComponentRegistry.componentDefinitions.keys());
+				for (const sel of selectors) {
+					if (ele.hasAttribute(sel)) {
+						this.createComponentWithElement(ele as HTMLElement, ComponentRegistry.componentDefinitions.get(sel));
+						continue;
+					}
+					const found = Array.from(ele.querySelectorAll(`[${sel}]:not([iizuna-linked])`));
+					for (const f of found) {
+						this.createComponentWithElement(f as HTMLElement, ComponentRegistry.componentDefinitions.get(sel));
+					}
+				}
+			}
+
+			// check if any iizuna linked items were removed
+			const removed: Element[] = Array.from(m.removedNodes) as Element[];
+			for (const ele of removed) {
+				if (!ele.querySelectorAll) {
+					continue;
+				}
+				this.destroyElement(ele);
+
+				const linkedElements = Array.from(ele.querySelectorAll('[iizuna-linked]')) as Element[];
+				for (const sub of linkedElements) {
+					this.destroyElement(sub);
+				}
+			}
 		}
 	}
 }

@@ -28,17 +28,6 @@ export const ComponentRegistry = new class {
 	 */
 	public componentDefinitions: Map<string, any> = new Map();
 
-	public lifeListener: MutationObserver;
-
-	constructor() {
-		this.lifeListener = new MutationObserver((mutations, observer) => {
-			this.lifeRemoveEvent(mutations);
-		});
-		this.lifeListener.observe(document.body, {
-			childList: true,
-			subtree: true,
-		});
-	}
 
 	/**
 	 * @description
@@ -103,40 +92,5 @@ export const ComponentRegistry = new class {
 		}
 		element.setAttribute('iizuna-linked', '');
 		this.elementToComponentRegister.set(element, [component]);
-	}
-
-
-	public destroyElement(ele: Element) {
-		const components = this.elementToComponentRegister.get(ele);
-		if (!components) {
-			return;
-		}
-		// destroy, and garbage collect!
-		for (const c of components) {
-			if (c.onDestroy) {
-				c.onDestroy();
-			}
-			c.children = null;
-			c.childrenComponents = null;
-			c.element = null;
-			c.template = null;
-		}
-	}
-
-	public lifeRemoveEvent(mutations: MutationRecord[]) {
-		for (const m of mutations) {
-			const removed: Element[] = Array.from(m.removedNodes) as Element[];
-			for (const ele of removed) {
-				if (!ele.querySelectorAll) {
-					continue;
-				}
-				this.destroyElement(ele);
-
-				const linkedElements = Array.from(ele.querySelectorAll('[iizuna-linked]')) as Element[];
-				for (const sub of linkedElements) {
-					this.destroyElement(sub);
-				}
-			}
-		}
 	}
 };
