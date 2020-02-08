@@ -22,6 +22,11 @@ export abstract class ComponentFactory {
 	 * @param element
 	 */
 	public static registerComponentsOnce(components: any[], element: any = document): void {
+		// register the classes so we can dynamically create new instances as needed
+		for (const c of components) {
+			const componentClass = this.createComponentClass(c);
+			ComponentRegistry.componentDefinitions.set(componentClass.selector, c);
+		}
 		DomReady.ready(() => {
 			for (let i = 0, l = components.length; i < l; i++) {
 				const componentClass = this.createComponentClass(components[i]);
@@ -48,6 +53,11 @@ export abstract class ComponentFactory {
 	 * @param element
 	 */
 	public static registerComponents(components: any[], element: any = document): void {
+		// register the classes so we can dynamically create new instances as needed
+		for (const c of components) {
+			const componentClass = this.createComponentClass(c);
+			ComponentRegistry.componentDefinitions.set(componentClass.selector, c);
+		}
 		DomReady.ready(() => {
 			for (let i = 0, l = components.length; i < l; i++) {
 				const componentClass = this.createComponentClass(components[i]);
@@ -126,6 +136,19 @@ export abstract class ComponentFactory {
 	 * @param {HTMLElement} element
 	 */
 	private static initializeComponentStepA(individualComponent: AbstractComponent, element: Element): AbstractComponent {
+
+		// dont re-create or re-register something that exists already
+		const previous = ComponentRegistry.getComponentForElement(element);
+		if (previous.length > 0) {
+			for (const c of previous) {
+				if (c.selector === individualComponent.selector && c.identifier === individualComponent.identifier) {
+					return c;
+				}
+			}
+		}
+
+		ComponentRegistry.registerElement(element, individualComponent);
+
 		individualComponent.element = element;
 		individualComponent.selector = individualComponent.__options.selector;
 		let tmplAttr = HtmlElementUtility.getSelectorValue('template-source', element);
@@ -183,8 +206,9 @@ export abstract class ComponentFactory {
 		}
 		this.initializeTemplate(individualComponent, templateElement);
 
+		let children: AbstractComponent[];
 		if (individualComponent.__options.childrenSelectors && individualComponent.__options.childrenSelectors.length) {
-			this.initializeChildrenElements(individualComponent, individualComponent.__options);
+			children = this.initializeChildrenElements(individualComponent, individualComponent.__options);
 		}
 		this.callComponentClassInitialized(individualComponent);
 		this.callReadyListener(individualComponent);
@@ -201,9 +225,11 @@ export abstract class ComponentFactory {
 	 * @param individualComponent
 	 * @param {HTMLTemplateElement} templateElement
 	 */
-	private static initializeTemplate(individualComponent: any, templateElement: HTMLTemplateElement) {
+	private static initializeTemplate(individualComponent: AbstractComponent, templateElement: HTMLTemplateElement) {
 		if (templateElement && typeof templateElement.innerHTML !== 'undefined') {//we no longer check the instance of, because of some polyfills that cant inherit from the HTMLTemplateElement
 			individualComponent.template = new Template(templateElement.innerHTML);
+			// TODO: huge breaking change.
+			individualComponent.element.append(individualComponent.template.render({}));
 		}
 	}
 
@@ -225,14 +251,52 @@ export abstract class ComponentFactory {
 	 * @param {AbstractComponent} individualComponent
 	 * @param options todo: add definition for options
 	 */
-	private static initializeChildrenElements(individualComponent: AbstractComponent, options: any): void {
+	private static initializeChildrenElements(individualComponent: AbstractComponent, options: any): AbstractComponent[] {
+
+		const foundChildren: AbstractComponent[] = [];
 		for (let j = 0; j < options.childrenSelectors.length; j++) {
-			const childrenElements = HtmlElementUtility.querySelectAllByAttribute(options.childrenSelectors[j], individualComponent.element);
+			let selector = options.childrenSelectors[j];
+			let identifier: string = null;
+			if (selector.indexOf('=')) {
+				[selector, identifier] = selector.split('=');
+			}
+			const childrenElements = HtmlElementUtility.querySelectAllByAttribute(selector, individualComponent.element, identifier);
 			if (typeof individualComponent.children === "undefined") {
 				individualComponent.children = {};
+				individualComponent.childrenComponents = {};
+			}
+			// this child selector... is it a registered component?
+			// if so, lets makes sure it gets initialized
+			const childCompentDef = ComponentRegistry.componentDefinitions.get(selector);
+			const childrenComponents = [];
+			if (childCompentDef) {
+				// loop of each matching element we found
+				const children = Array.from(childrenElements);
+				for (const c of children) {
+					// check if we have already created this child or not
+					const childComp = ComponentRegistry.getComponentForElement(c);
+					let foundChild: AbstractComponent;
+					if (childComp.length > 0) {
+						for (const cc of childComp) {
+							// match first the selector. and then the identifier if one is set
+							if (cc.selector === options.childrenSelectors[j] && (identifier === null || identifier === cc.identifier)) {
+								foundChild = cc;
+							}
+						}
+					}
+					// if we couldn't find an instance of for this element and component
+					// then lets init it!
+					if (!foundChild) {
+						foundChild = this.createComponentWithElement(c as HTMLElement, this.createComponentClass(childCompentDef));
+					}
+					foundChildren.push(foundChild);
+					childrenComponents.push(foundChild);
+				}
 			}
 			individualComponent.children[options.childrenSelectors[j]] = childrenElements;
+			individualComponent.childrenComponents[options.childrenSelectors[j]] = childrenComponents;
 		}
+		return foundChildren;
 	}
 
 	/**

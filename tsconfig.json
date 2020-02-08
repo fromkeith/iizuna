@@ -14,6 +14,6 @@
 		"declaration": true,
 		"outDir": "./lib",
 		"strict": false,
-		"lib": ["es5", "dom", "es2015.symbol"]
+		"lib": ["es5", "dom", "es2015.symbol", "es2015"]
 	}
 }

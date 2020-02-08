@@ -37,7 +37,12 @@ export abstract class AbstractComponent {
 	 * @description
 	 * The Elements that are found by the childSelectors configured by the Component Decorator
 	 */
-	children: any;
+	children: {[selectorIdentifier: string]: NodeList};
+	/**
+	 * @description
+	 * The Abstract Compeonts that are found by the childSelectors configured by the Component Decorator
+	 */
+	childrenComponents: {[selectorIdentifier: string]: AbstractComponent[]};
 	/**
 	 * @description
 	 * The complete Configuration passed to the Component Decorator.

@@ -16,6 +16,20 @@ export const ComponentRegistry = new class {
 
 	/**
 	 * @description
+	 * A map of HTMLElements to their initialized components.
+	 * @type {{}}
+	 */
+	public elementToComponentRegister: WeakMap<Element, AbstractComponent[]> = new WeakMap<Element, AbstractComponent[]>();
+
+	/**
+	 * @description
+	 * A map of selectors to the class definition. Allows for us to easy create
+	 * new components when we find them
+	 */
+	public componentDefinitions: Map<string, any> = new Map();
+
+	/**
+	 * @description
 	 * Register the component in the local componentRegister object
 	 * @param {string} selector the selector, configured via Component Decorator
 	 * @param {AbstractComponent} individualComponent
@@ -49,5 +63,32 @@ export const ComponentRegistry = new class {
 		return components.filter((element: AbstractComponent) => {
 			return HtmlElementUtility.getSelectorValue(selector, element.element) === identifier;
 		});
+	}
+
+	/**
+	 * @description
+	 * Given an HTML element, returns all components attached to it
+	 * @param {Element} element
+	 * @return {*}
+	 */
+	public getComponentForElement(element: Element): AbstractComponent[] {
+		if (this.elementToComponentRegister.has(element)) {
+			return this.elementToComponentRegister.get(element);
+		}
+		return [];
+	}
+	/**
+	 * @description
+	 * Saves an Element, component pair into the registery
+	 * @param {Element} element
+	 * @param {AbstractComponent} component
+	 * @return {*}
+	 */
+	public registerElement(element: Element, component: AbstractComponent): void {
+		if (this.elementToComponentRegister.has(element)) {
+			this.elementToComponentRegister.get(element).push(component);
+			return;
+		}
+		this.elementToComponentRegister.set(element, [component]);
 	}
 };
