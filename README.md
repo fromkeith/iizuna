@@ -1,137 +1,99 @@
-# iizuna [![Build Status](https://travis-ci.com/iizunats/iizuna.svg?branch=master)](https://travis-ci.com/iizunats/iizuna) [![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/Nano1237/iizuna.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Nano1237/iizuna/context:javascript) [![Total alerts](https://img.shields.io/lgtm/alerts/g/Nano1237/iizuna.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Nano1237/iizuna/alerts/) [![NPM version](https://img.shields.io/npm/v/iizuna.svg)](https://www.npmjs.org/package/iizuna) [![Donate](https://img.shields.io/badge/donorbox-donate-blue.svg)](https://donorbox.org/iizuna) [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Create%20fast%20and%20reliable%20component%20based%20applications%20for%20server-side-rendered%20projects!&url=http://iizunats.com&via=IizunaTeam&hashtags=typescript,components,frontend,framework,developers)
+## About
+This is a fork of https://github.com/iizunats/iizuna/
 
-<img src="https://raw.githubusercontent.com/iizunats/iizuna/master/.github/assets/logo-300dpi.png" width="200">
- 
-pronunciation: `/Īdzuna/`
+* Focus of this library is to allow easy component injection to 3rd party websites. Eg. via chrome extensions
+* Why use `iizuna`?
+ * It provides a TypeScript first approach to components.
+ * Its very light weight, and not over burdensome
 
-> We’re not designing pages, **we’re designing systems of components.** — [Stephen Hay](http://bradfrost.com/blog/post/bdconf-stephen-hay-presents-responsive-design-workflow/)
+### Breaking Changes
 
-*Iizuna is available for use under the MIT software license.*
+- Templates
+	- [x] render child template immediately
+	- [ ] remove mustache entirely
+	- [ ] refine
+	- [ ] unit tests
+- LifeCycle
+	- [x] allow components to be destroyed for when injecting into SPA
+	- [ ] verify no memory leaks
+	- [ ] refine
+	- [ ] unit tests
+- Extras
+	- [x] allow very basic service injection
+		- [ ] Refine to constructor?
+	- [x] give components access to their child components
+	- [ ] refine
+	- [ ] unit tests
+- "Routing"
+	- [ ] react to SPA page changes
+	- [x] allow very basic "routing".
+	- [ ] have a more automated way of injecting components
+	- [ ] refine
+	- [ ] unit tests
 
-*You can report bugs and discuss features on the GitHub issues page.*
 
-*To dive into the development you can take a look at [the sample page](https://github.com/iizunats/iizuna/tree/examples).*
-*There you will find some simple example components and a ready to use build process.*
+## Routing
 
-[**Our wiki with the documentation can be found here.**](https://github.com/iizunats/iizuna/wiki)
+Routing is not so much "routing" as it is reacting to route changes. For now, you must trigger when a page is changed.
+It will listen for any new HTML components being added to the DOM, and help inject your component
 
-## Installation
 
+```TypeScript
+import {
+    router,
+    IPathArgs,
+} from 'iizuna';
+
+router.addRoute({
+	// what pathname we should activate on
+    path: '/page/path/{someId}',
+    spots: [
+        {
+        	// what parent we should look for
+            parentSelector: '.some .selector-that[checked]',
+            // what my template needs to be
+            template: '<span hello-world></span>',
+            // you MUST inject yourself where in the parent you want to go
+            manualInject: (parent: HTMLElement, me: HTMLElement, args: IPathArgs) => {
+            	// maybe pull info from the DOM?
+                const someId = parent.getAttribute('data-item-id');
+                me.setAttribute('hello-world', someId);
+                me.setAttribute('some-id', args.someId);
+                // put myself into the dom
+                parent.prepend(me);
+            },
+        },
+    ],
+});
 ```
-npm install iizuna --save
-```
-
-## Websites using iizuna
-
-- https://www.babtec.de/en
-- https://corny.de
-
-## What is iizuna?
-
-Iizuna came from the idea of ​​designing a truly developer-friendly framework.
-Many of today's TypeScript frameworks, such as Angular or React, are not designed to be used on pages that rely on old-fashioned server-side rendering.
-
-This framework is really easy to use because it basically consists of only one building block, the component.
-
-These components reflect rough HTML elements.
-Selectors (currently only data-attributes) define which elements are decorated with the business-logic you develop.
-
-Additional attributes allow additional configuration of the components, making them easily reusable.
 
 
-## Wordings
+## Services
 
-First of all a few explanations to some of the words used in this framework.
-
-### Component
-The **class** containing the business logic. Not to be confused with the **Individual-Component**.
-
-### Individual-Component
-The **objects** instantiated based by the **Component** they are descendants of.
-For each matching element on the page, which matches the component selector, a **Individual-Component** is created.
-
-### Global Events
-**CustomEvents** which are dispatched directly to the **document**.
+A service, is just any old Object or class that lives as a singleton.
 
 
-## Usage
+```TypeScript
+// my service definition
+class MyService {
 
-First, a component must be declared. Here we declare a simple "scroll to top" button.
-
-```typescript
-// scroll-top.component.ts
-import {AbstractComponent, Component, ElementAttribute, EventListener, smoothScroll} from "iizuna";
-
-/**
- * Decorate the declared component class with the @Component decorator (the magic happens here)
- */
-@Component({
-	/**
-	 * define the data- selector which should be used to identify the element
-	 * (matches scroll-top and data-scroll-top)
-	 */
-	selector: 'scroll-top'
-})
-export class ScrollTopComponent extends AbstractComponent {
-
-	/**
-	 * Declare a class property and decorate it via the @ElementAttribute decorator which automatically retrieves the attribute value of the element on page load.
-	 * (800 if the element would look like this <button scroll-top duration="800">To top!</button>)
-	 *
-	 * If the attribute is not specified, the default value (in this case 500) is used
-	 */
-	@ElementAttribute()
-	protected duration = 500;
-
-	/**
-	 * Attach a simple click listener to the element.
-	 *
-	 * You can also define multiple listeners of the same kind if you specify the listener name as first argument for the @EventListener decorator like:
-	 *
-	 * @EventListener('click')
-	 * public clickOne() {
-	 * }
-	 *
-	 * @EventListener('click')
-	 * public clickTwo() {
-	 * }
-	 *
-	 */
-	@EventListener()
-	public click() {
-		smoothScroll(0, +this.duration);
-	}
 }
-```
-
-Then we need to register the created component for bootstrapping.
-
-```typescript
-// main.ts
-import {ComponentFactory} from "iizuna";
-import {ScrollTopComponent} from "./scroll-top.component";
-
-ComponentFactory.registerComponents([
-	ScrollTopComponent
+// register it to a service
+ComponentFactory.registerServices([
+    ['MyService', new MyService()]
 ]);
+// have a component reference it
+@Component({
+    selector: 'hello-world',
+    inject: ['MyService'],
+});
+export class HelloWorldComponent extends AbstractComponent implements OnInject, OnDestroy {
+	onInject(myService: MyService) {
+        this.myService = leadService;
+    }
+    onDestory() {
+    	// remove any references to things
+    }
+}
+
 ```
-
-Now we just have to define the html and call the page (after building the javascript of cause).
-
-```html
-<!-- index.html -->
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no"/>
-    <title>TypeScript Components</title>
-  </head>
-<body>
-	<button scroll-top duration="1000">To Top 1000ms</button>
-  <script src="build.js"></script>
-</body>
-</html>
-```
-
-Take a look at [the examples](https://github.com/iizunats/iizuna/tree/examples) if you want to see more advanced component configurations.
