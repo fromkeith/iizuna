@@ -8,6 +8,7 @@ import {Promise} from "es6-promise";
 import {OnResize} from "../interfaces/on-resize.interface";
 import {OnInject} from "../interfaces/on-inject.interface";
 import {TemplateCache} from "./template.cache";
+import {router} from './route.factory';
 
 /**
  * @description
@@ -407,6 +408,19 @@ export abstract class ComponentFactory {
 				}
 				if (ele.hasAttribute('iizuna-linked')) {
 					continue;
+				}
+				// TODO: attach route rules to current element
+				const routeRule = router.getActiveRule();
+				if (routeRule) {
+					for (const spot of routeRule.base.spots) {
+						const roots = Array.from(ele.querySelectorAll(spot.parentSelector)) as HTMLElement[];
+						const tempContainer = document.createElement('div');
+  						tempContainer.innerHTML = spot.template;
+  						for (const r of roots) {
+  							const newNode = tempContainer.firstChild.cloneNode(true) as HTMLElement;
+  							spot.manualInject(r, newNode, routeRule.args);
+  						}
+					}
 				}
 				const selectors = Array.from(ComponentRegistry.componentDefinitions.keys());
 				for (const sel of selectors) {

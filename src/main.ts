@@ -44,3 +44,4 @@ export {AjaxHelper} from "./helpers/ajax-helper";
 export {DomReady} from "./helpers/dom-ready";
 export {EventHelper} from "./helpers/event-helper";
 export {HtmlElementUtility} from "./helpers/html-element-utility";
+export {router, IPathArgs} from "./helpers/route.factory";
