@@ -3,8 +3,8 @@ This is a fork of https://github.com/iizunats/iizuna/
 
 * Focus of this library is to allow easy component injection to 3rd party websites. Eg. via chrome extensions
 * Why use `iizuna`?
- * It provides a TypeScript first approach to components.
- * Its very light weight, and not over burdensome
+   * It provides a TypeScript first approach to components.
+   * Its very light weight, and not over burdensome
 
 ### Breaking Changes
 
@@ -91,7 +91,7 @@ export class HelloWorldComponent extends AbstractComponent implements OnInject, 
 	onInject(myService: MyService) {
         this.myService = leadService;
     }
-    onDestory() {
+    onDestroy() {
     	// remove any references to things
     }
 }
